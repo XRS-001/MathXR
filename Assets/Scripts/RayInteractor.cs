@@ -1,9 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEditor.Rendering.FilterWindow;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.InputSystem;
+using System.Runtime.CompilerServices;
 
 public class RayInteractor : MonoBehaviour
 {
@@ -19,6 +19,7 @@ public class RayInteractor : MonoBehaviour
     private Button button;
     private bool isHovering;
     public RayInteractor otherRayInteractor;
+    private bool canPress = true;
     private void Start()
     {
         point1.transform.parent = null;
@@ -79,8 +80,12 @@ public class RayInteractor : MonoBehaviour
                         button = null;
                     }
 
-                    if (UIPressButton.action.ReadValue<float>() > 0.5f)
+                    if (UIPressButton.action.ReadValue<float>() > 0.5f && button && canPress)
+                    {
                         button.PressButton();
+                        Invoke(nameof(DelayCanPress), 0.5f);
+                        canPress = false;
+                    }
                 }
                 else if (hitInfo.collider.GetComponent<Button>())
                     if (UIPressButton.action.ReadValue<float>() > 0.5f)
@@ -97,6 +102,10 @@ public class RayInteractor : MonoBehaviour
         {
             Disable();
         }
+    }
+    void DelayCanPress()
+    {
+        canPress = true;
     }
     private void Disable()
     {
