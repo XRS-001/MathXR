@@ -1477,9 +1477,9 @@ MonoBehaviour:
   headAnchorRotationOffset: {x: 0, y: 0, z: 0}
   leftHandAnchor: {fileID: 14634607}
   rightHandAnchor: {fileID: 2003638425}
-  handAnchorPositionOffset: {x: 0, y: -0.04, z: 0.11}
+  handAnchorPositionOffset: {x: 0, y: 0, z: 0.11}
   handAnchorRotationOffset: {x: -10, y: 0, z: 0}
-  scaleMlp: 1.015
+  scaleMlp: 1.05
   data:
     scale: 0
     head:
@@ -2421,6 +2421,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   controller:
+    leftController: {fileID: 14634607}
     leftHandControllerMesh: {fileID: 3350980303882187546}
     rayCharacterLeftHandOffset: {x: 0.0149, y: 0.0785, z: 0.0017}
     rayOffsetLeft: {fileID: 1938485207}
@@ -2428,6 +2429,7 @@ MonoBehaviour:
     leftIKTargetStartPosition: {x: 0, y: 0, z: 0}
     leftIKTargetStartRotation: {x: 0, y: 0, z: 0, w: 0}
     leftHandBonePoint: {fileID: 4090730138809789414}
+    rightController: {fileID: 2003638425}
     rightHandControllerMesh: {fileID: 3120518387053770845}
     rayCharacterRightHandOffset: {x: -0.0149, y: 0.0785, z: 0.0017}
     rayOffsetRight: {fileID: 1926622467}
@@ -2445,25 +2447,26 @@ MonoBehaviour:
     leftHanded: 0
     leftGrabbing: 0
     rightGrabbing: 0
-    leftController: {fileID: 14634607}
-    rightController: {fileID: 2003638425}
-    stringGrabRadius: 0.03
+    stringGrabRadius: 0.05
     grabPoint: {x: 0.03, y: -0.05, z: 0.03}
     leftHandedBow: {fileID: 0}
-    rightHandedBow: {fileID: 8658838252972268239, guid: 294e59c1dedc65148be06f5c8a5d283e,
+    rightHandedBow: {fileID: 6467350737660902997, guid: 294e59c1dedc65148be06f5c8a5d283e,
       type: 3}
+    arrowToShoot: {fileID: 1349136880123137079, guid: 4d1355a6db7467642bc898ee9f95052a,
+      type: 3}
+    arrowStrengthMultiplier: 50
     leftBowPositionOffset: {x: 0, y: 0, z: 0}
     leftBowRotationOffset: {x: 0, y: 0, z: 0}
-    rightBowPositionOffset: {x: 0.009, y: 0.0906, z: -0.0369}
-    rightBowRotationOffset: {x: 0.000000151199, y: 269.9312, z: 0.00000045269127}
+    rightBowPositionOffset: {x: 0.071, y: 0.0875, z: 0.0166}
+    rightBowRotationOffset: {x: 0, y: -3, z: 90}
     spawnedBow: {fileID: 0}
     leftGrabbingString: 0
     rightGrabbingString: 0
-    stringDisconnectThreshold: 0.01
+    stringDisconnectThreshold: 1
     stringLeftGrabPositionOffset: {x: 0, y: 0, z: 0}
-    stringRightGrabPositionOffset: {x: 0.015, y: -0.06, z: 0.01}
+    stringRightGrabPositionOffset: {x: -0.02, y: -0.08, z: -0.02}
     stringLeftGrabRotationOffset: {x: 0, y: 0, z: 0}
-    stringRightGrabRotationOffset: {x: 180, y: 180, z: 0}
+    stringRightGrabRotationOffset: {x: 180, y: 0, z: 0}
     leftGrabInput:
       m_UseReference: 1
       m_Action:
@@ -2490,9 +2493,12 @@ MonoBehaviour:
         m_Flags: 0
       m_Reference: {fileID: -1758520528963094988, guid: c348712bda248c246b8c49b3db54643f,
         type: 3}
+    handsReachedTarget: 0
+    handsReachingTarget: 0
     offsetSet: 1
     stringGrabOffset: {x: 0, y: 0, z: 0.13750009}
     stringDistanceTarget: 0.15
+    shotStrength: 0
 --- !u!4 &1335103517
 Transform:
   m_ObjectHideFlags: 0
@@ -3512,7 +3518,7 @@ PrefabInstance:
     - target: {fileID: 6598815579406187037, guid: 9f5a24a380916d14db9775daab4fe333,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -7142,7 +7148,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &4538260867620102570
 GameObject:
   m_ObjectHideFlags: 0
@@ -7948,10 +7954,37 @@ MonoBehaviour:
       armLengthMlp: 1
       stretchCurve:
         serializedVersion: 2
-        m_Curve: []
+        m_Curve:
+        - serializedVersion: 3
+          time: 0.9
+          value: 0
+          inSlope: 0.49999988
+          outSlope: 0.010607565
+          tangentMode: 1
+          weightedMode: 0
+          inWeight: 0.33333334
+          outWeight: 0.33333334
+        - serializedVersion: 3
+          time: 1
+          value: 0.05
+          inSlope: 0.6666667
+          outSlope: 0.6666667
+          tangentMode: 34
+          weightedMode: 0
+          inWeight: 0.33333334
+          outWeight: 0.33333334
+        - serializedVersion: 3
+          time: 1.3
+          value: 0.3
+          inSlope: 0.8333335
+          outSlope: 0.8333335
+          tangentMode: 34
+          weightedMode: 0
+          inWeight: 0.33333334
+          outWeight: 0.33333334
         m_PreInfinity: 2
         m_PostInfinity: 2
-        m_RotationOrder: 4
+        m_RotationOrder: 0
     rightArm:
       bones: []
       target: {fileID: 0}
@@ -7970,10 +8003,37 @@ MonoBehaviour:
       armLengthMlp: 1
       stretchCurve:
         serializedVersion: 2
-        m_Curve: []
+        m_Curve:
+        - serializedVersion: 3
+          time: 0.9
+          value: 0
+          inSlope: 0.49999988
+          outSlope: 0.010607565
+          tangentMode: 1
+          weightedMode: 0
+          inWeight: 0.33333334
+          outWeight: 0.33333334
+        - serializedVersion: 3
+          time: 1
+          value: 0.05
+          inSlope: 0.6666667
+          outSlope: 0.6666667
+          tangentMode: 34
+          weightedMode: 0
+          inWeight: 0.33333334
+          outWeight: 0.33333334
+        - serializedVersion: 3
+          time: 1.3
+          value: 0.3
+          inSlope: 0.8333335
+          outSlope: 0.8333335
+          tangentMode: 34
+          weightedMode: 0
+          inWeight: 0.33333334
+          outWeight: 0.33333334
         m_PreInfinity: 2
         m_PostInfinity: 2
-        m_RotationOrder: 4
+        m_RotationOrder: 0
     leftLeg:
       bones: []
       target: {fileID: 0}

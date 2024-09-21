@@ -6,4 +6,5 @@ public class BowSettings : MonoBehaviour
 {
     public GameObject stringGrabPoint;
     public GameObject stringArmaturePiece;
+    public GameObject arrowModel;
 }
