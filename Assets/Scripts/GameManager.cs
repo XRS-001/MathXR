@@ -1,8 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using RootMotion.Demos;
+using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class GameManager : MonoBehaviour
 {
@@ -36,13 +39,26 @@ public class GameManager : MonoBehaviour
     public GameObject playerMesh;
     public VRIKCalibrationBasic VRIKCalibration;
     [System.Serializable]
-    public class GameUI
+    public class Game
     {
         public GameObject startUI;
         public GameObject handSelectionUI;
         public GameObject gameModeSelectionUI;
+        public GameObject gameUI;
+        public Transform[] spawnPoints;
+        public PotentialAnswer[] potentialAnswer;
+        public TextMeshProUGUI questionText, scoreText;
+        public int questionsToAnswer;
+        public float timeBetweenPotentialAnswers;
+        public float oddsOfAnswer;
+        [HideInInspector]
+        public int score;
+        [HideInInspector]
+        public int answer;
+        [HideInInspector]
+        public bool correctAnswerHit = false;
     }
-    public GameUI gameUI;
+    public Game game;
     [System.Serializable]
     public class Bow
     {
@@ -63,7 +79,7 @@ public class GameManager : MonoBehaviour
         public Vector3 stringLeftGrabPositionOffset, stringRightGrabPositionOffset, stringLeftGrabRotationOffset, stringRightGrabRotationOffset;
         public InputActionProperty leftGrabInput, rightGrabInput;
         [HideInInspector]
-        public bool handsReachedTarget = false, handsReachingTarget = false, offsetSet = false;
+        public bool handsReachedTarget = false, handsReachingTarget = false, offsetSet = false, hasFiredArrow = false;
         [HideInInspector]
         public Vector3 stringGrabOffset;
         public float stringDistanceTarget;
@@ -81,8 +97,8 @@ public class GameManager : MonoBehaviour
         controller.rayOffsetRight.localPosition = controller.rayCharacterRightHandOffset;
         playerMesh.SetActive(true);
         VRIKCalibration.Calibrate();
-        gameUI.startUI.SetActive(false);
-        gameUI.handSelectionUI.SetActive(true);
+        game.startUI.SetActive(false);
+        game.handSelectionUI.SetActive(true);
 
         controller.leftIKTarget = GameObject.Find("Left Hand IK Target").transform;
         controller.leftIKTargetStartPosition = controller.leftIKTarget.localPosition;
@@ -96,23 +112,27 @@ public class GameManager : MonoBehaviour
     {
         if (isLeftHanded)
             bow.leftHanded = true;
-        gameUI.handSelectionUI.SetActive(false);
-        gameUI.gameModeSelectionUI.SetActive(true);
+        game.handSelectionUI.SetActive(false);
+        game.gameModeSelectionUI.SetActive(true);
     }
     public void PickGameMode(string gameModeChosen)
     {
         switch (gameModeChosen)
         {
             case "Addition & Subtraction":
-                gameUI.gameModeSelectionUI.SetActive(false);
+                game.gameModeSelectionUI.SetActive(false);
+                game.gameUI.SetActive(true);
+                StartCoroutine(RunGame());
                 break;
 
             case "Multiplication":
-                gameUI.gameModeSelectionUI.SetActive(false);
+                game.gameModeSelectionUI.SetActive(false);
+                game.gameUI.SetActive(true);
                 break;
 
             case "Division":
-                gameUI.gameModeSelectionUI.SetActive(false);
+                game.gameModeSelectionUI.SetActive(false);
+                game.gameUI.SetActive(true);
                 break;
         }
         if (bow.leftHanded)
@@ -129,6 +149,49 @@ public class GameManager : MonoBehaviour
             bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
             bow.rightGrabbing = true;
         }
+    }
+    IEnumerator RunGame()
+    {
+        float timer = 0;
+        game.answer = Random.Range(1, 101);
+        int firstNumberInSum = Random.Range(1, game.answer);
+        game.questionText.text = $"{firstNumberInSum} + {game.answer - firstNumberInSum}";
+        while (game.score < game.questionsToAnswer)
+        {
+            timer += Time.deltaTime;
+            if(timer > game.timeBetweenPotentialAnswers)
+            {
+                int randomColor = Random.Range(0, game.potentialAnswer.Length - 1);
+                int randomSpawnPoint = Random.Range(0, game.spawnPoints.Length - 1);
+                PotentialAnswer spawnedPotentialAnswer = Instantiate(game.potentialAnswer[randomColor], game.spawnPoints[randomSpawnPoint].position, Quaternion.LookRotation(game.spawnPoints[randomSpawnPoint].position - Vector3.zero, Vector3.up)).GetComponent<PotentialAnswer>();
+                spawnedPotentialAnswer.body.AddForce(Vector3.up * 100, ForceMode.Force);
+
+                bool isAnswer = Random.Range(1, (int)(1 / game.oddsOfAnswer) + 1) == 1;
+                if (isAnswer)
+                {
+                    spawnedPotentialAnswer.numberText.text = game.answer.ToString();
+                }
+                else
+                {
+                    int number = Random.Range(1, 101);
+                    spawnedPotentialAnswer.numberText.text = number.ToString();
+                }
+                timer = 0;
+            }
+            if(game.correctAnswerHit == true)
+            {
+                game.correctAnswerHit = false;
+                game.score++;
+                game.answer = Random.Range(1, 101);
+                firstNumberInSum = Random.Range(1, game.answer);
+                game.questionText.text = $"{firstNumberInSum} + {game.answer - firstNumberInSum}";
+            }
+            game.scoreText.text = $"Score: {game.score}";
+            yield return null;
+        }
+        game.gameModeSelectionUI.SetActive(true);
+        game.gameUI.SetActive(false);
+        yield return null;
     }
     private void Update()
     {
@@ -161,6 +224,7 @@ public class GameManager : MonoBehaviour
         }
         if (bow.rightGrabbingString)
         {
+            bow.hasFiredArrow = false;
             bow.spawnedBow.arrowModel.SetActive(true);
             if (!bow.handsReachingTarget)
             {
@@ -212,10 +276,6 @@ public class GameManager : MonoBehaviour
                     controller.leftIKTarget.localRotation = controller.leftIKTargetStartRotation;
 
                 bow.offsetSet = false;
-                if(bow.shotStrength > 0.5f)
-                {
-                    FireArrow();
-                }
             }
             if (controller.rightIKTarget && bow.offsetSet && bow.handsReachedTarget)
             {
@@ -224,6 +284,11 @@ public class GameManager : MonoBehaviour
 
                 if (controller.leftIKTarget)
                     controller.leftIKTarget.localRotation = Quaternion.Slerp(controller.leftIKTarget.localRotation, controller.leftIKTargetStartRotation, 0.3f);
+            }
+            if (bow.shotStrength > 0.5f && !bow.hasFiredArrow)
+            {
+                FireArrow();
+                bow.hasFiredArrow = true;
             }
         }
 
@@ -247,10 +312,6 @@ public class GameManager : MonoBehaviour
                     controller.rightIKTarget.localRotation = controller.rightIKTargetStartRotation;
 
                 bow.offsetSet = false;
-                if (bow.shotStrength > 0.5f)
-                {
-                    FireArrow();
-                }
             }
             if (controller.leftIKTarget && bow.offsetSet && bow.handsReachedTarget)
             {
@@ -259,6 +320,11 @@ public class GameManager : MonoBehaviour
 
                 if (controller.rightIKTarget)
                     controller.rightIKTarget.localRotation = Quaternion.Slerp(controller.rightIKTarget.localRotation, controller.rightIKTargetStartRotation, 0.3f);
+            }
+            if (bow.shotStrength > 0.5f && !bow.hasFiredArrow)
+            {
+                FireArrow();
+                bow.hasFiredArrow = true;
             }
         }
     }
