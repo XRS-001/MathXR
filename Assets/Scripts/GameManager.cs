@@ -122,40 +122,43 @@ public class GameManager : MonoBehaviour
             case "Addition & Subtraction":
                 game.gameModeSelectionUI.SetActive(false);
                 game.gameUI.SetActive(true);
-                StartCoroutine(RunGame());
+                StartCoroutine(RunGame(gameModeChosen));
                 break;
 
             case "Multiplication":
                 game.gameModeSelectionUI.SetActive(false);
                 game.gameUI.SetActive(true);
+                StartCoroutine(RunGame(gameModeChosen));
                 break;
 
             case "Division":
                 game.gameModeSelectionUI.SetActive(false);
                 game.gameUI.SetActive(true);
+                StartCoroutine(RunGame(gameModeChosen));
                 break;
         }
-        if (bow.leftHanded)
+        if (!bow.spawnedBow)
         {
-            bow.spawnedBow = Instantiate(bow.leftHandedBow, controller.rightIKTarget).GetComponent<BowSettings>();
-            bow.spawnedBow.transform.localPosition = bow.leftBowPositionOffset;
-            bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.leftBowRotationOffset);
-            bow.leftGrabbing = true;
-        }
-        else
-        {
-            bow.spawnedBow = Instantiate(bow.rightHandedBow, controller.leftIKTarget).GetComponent<BowSettings>();
-            bow.spawnedBow.transform.localPosition = bow.rightBowPositionOffset;
-            bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
-            bow.rightGrabbing = true;
+            if (bow.leftHanded)
+            {
+                bow.spawnedBow = Instantiate(bow.leftHandedBow, controller.rightIKTarget).GetComponent<BowSettings>();
+                bow.spawnedBow.transform.localPosition = bow.leftBowPositionOffset;
+                bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.leftBowRotationOffset);
+                bow.leftGrabbing = true;
+            }
+            else
+            {
+                bow.spawnedBow = Instantiate(bow.rightHandedBow, controller.leftIKTarget).GetComponent<BowSettings>();
+                bow.spawnedBow.transform.localPosition = bow.rightBowPositionOffset;
+                bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
+                bow.rightGrabbing = true;
+            }
         }
     }
-    IEnumerator RunGame()
+    IEnumerator RunGame(string gameModeChosen)
     {
         float timer = 0;
-        game.answer = Random.Range(1, 101);
-        int firstNumberInSum = Random.Range(1, game.answer);
-        game.questionText.text = $"{firstNumberInSum} + {game.answer - firstNumberInSum}";
+        GenerateAnswer(gameModeChosen);
         while (game.score < game.questionsToAnswer)
         {
             timer += Time.deltaTime;
@@ -164,27 +167,34 @@ public class GameManager : MonoBehaviour
                 int randomColor = Random.Range(0, game.potentialAnswer.Length - 1);
                 int randomSpawnPoint = Random.Range(0, game.spawnPoints.Length - 1);
                 PotentialAnswer spawnedPotentialAnswer = Instantiate(game.potentialAnswer[randomColor], game.spawnPoints[randomSpawnPoint].position, Quaternion.LookRotation(game.spawnPoints[randomSpawnPoint].position - Vector3.zero, Vector3.up)).GetComponent<PotentialAnswer>();
-                spawnedPotentialAnswer.body.AddForce(Vector3.up * 100, ForceMode.Force);
+                spawnedPotentialAnswer.body.AddForce(Vector3.up * 150, ForceMode.Force);
 
                 bool isAnswer = Random.Range(1, (int)(1 / game.oddsOfAnswer) + 1) == 1;
                 if (isAnswer)
                 {
+                    spawnedPotentialAnswer.isAnswer = true;
                     spawnedPotentialAnswer.numberText.text = game.answer.ToString();
                 }
                 else
                 {
-                    int number = Random.Range(1, 101);
-                    spawnedPotentialAnswer.numberText.text = number.ToString();
+                    if(gameModeChosen != "Division")
+                    {
+                        int number = Random.Range(1, 101);
+                        spawnedPotentialAnswer.numberText.text = number.ToString();
+                    }
+                    else
+                    {
+                        int number = Random.Range(1, 31);
+                        spawnedPotentialAnswer.numberText.text = number.ToString();
+                    }
                 }
                 timer = 0;
             }
             if(game.correctAnswerHit == true)
             {
+                GenerateAnswer(gameModeChosen);
                 game.correctAnswerHit = false;
                 game.score++;
-                game.answer = Random.Range(1, 101);
-                firstNumberInSum = Random.Range(1, game.answer);
-                game.questionText.text = $"{firstNumberInSum} + {game.answer - firstNumberInSum}";
             }
             game.scoreText.text = $"Score: {game.score}";
             yield return null;
@@ -192,6 +202,69 @@ public class GameManager : MonoBehaviour
         game.gameModeSelectionUI.SetActive(true);
         game.gameUI.SetActive(false);
         yield return null;
+    }
+    void GenerateAnswer(string gameModeChosen)
+    {
+        int firstNumberInSum = 0;
+        switch (gameModeChosen)
+        {
+            case "Addition & Subtraction":
+                if (Random.Range(1, 3) == 1)
+                {
+                    game.answer = Random.Range(1, 101);
+                    firstNumberInSum = Random.Range(1, game.answer);
+                    game.questionText.text = $"{firstNumberInSum} + {game.answer - firstNumberInSum}";
+                }
+                else
+                {
+                    game.answer = Random.Range(1, 101);
+                    firstNumberInSum = Random.Range(game.answer + 1, 101);
+                    game.questionText.text = $"{firstNumberInSum} - {firstNumberInSum - game.answer}";
+                }
+                break;
+
+            case "Multiplication":
+                while (true)
+                {
+                    game.answer = Random.Range(1, 101);
+                    List<int> factors = new List<int>();
+                    for (int i = 1; i < game.answer; i++)
+                    {
+                        if ((double)((float)game.answer / (float)i) % 1 == 0)
+                        {
+                            factors.Add(i);
+                        }
+                    }
+                    if (factors.Count > 1)
+                    {
+                        int randomPoint = Random.Range(1, factors.Count - 1);
+                        game.questionText.text = $"{factors[randomPoint]} x {game.answer / factors[randomPoint]}";
+                        break;
+                    }
+                }
+                break;
+
+            case "Division":
+                while (true)
+                {
+                    game.answer = Random.Range(1, 33);
+                    List<int> factors = new List<int>();
+                    for (int i = 1; i < game.answer; i++)
+                    {
+                        if ((double)((float)game.answer / (float)i) % 1 == 0)
+                        {
+                            factors.Add(i);
+                        }
+                    }
+                    if (factors.Count > 1)
+                    {
+                        int randomPoint = Random.Range(1, factors.Count - 1);
+                        game.questionText.text = $"{game.answer * factors[randomPoint]} / {factors[randomPoint]}";
+                        break;
+                    }
+                }
+                break;
+        }
     }
     private void Update()
     {
@@ -216,7 +289,7 @@ public class GameManager : MonoBehaviour
             {
                 if (colliderRight[0].name != "StringGrabPoint")
                     colliderRight = null;
-                if (colliderRight[0] && bow.rightGrabInput.action.ReadValue<float>() > 0.25f) 
+                if (bow.rightGrabInput.action.ReadValue<float>() > 0.25f) 
                 {
                     bow.rightGrabbingString = true;
                 }
