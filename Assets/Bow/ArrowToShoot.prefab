@@ -93,6 +93,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1551844693735671440}
   - component: {fileID: 8130790547504341447}
+  - component: {fileID: 5618388000824084031}
   m_Layer: 0
   m_Name: ArrowToShoot
   m_TagString: Untagged
@@ -117,7 +118,7 @@ Transform:
   - {fileID: 3168117459015809913}
   - {fileID: 1372849516721528670}
   m_Father: {fileID: 0}
-  m_RootOrder: 11
+  m_RootOrder: 12
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &8130790547504341447
 Rigidbody:
@@ -146,6 +147,21 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!114 &5618388000824084031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349136880123137079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a618799a55c42454cbe712e160acc8c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hitSound: {fileID: 8300000, guid: c75608a8407542a48919ed8ba321e249, type: 3}
+  hitVolume: 30
+  timeUntilCanHit: 0.01
 --- !u!1 &1970313516193434005
 GameObject:
   m_ObjectHideFlags: 0

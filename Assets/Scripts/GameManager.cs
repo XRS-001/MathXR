@@ -47,6 +47,7 @@ public class GameManager : MonoBehaviour
         public GameObject gameUI;
         public Transform[] spawnPoints;
         public PotentialAnswer[] potentialAnswer;
+        public AudioClip potentialAnswerSound;
         public TextMeshProUGUI questionText, scoreText;
         public int questionsToAnswer;
         public float timeBetweenPotentialAnswers;
@@ -57,6 +58,11 @@ public class GameManager : MonoBehaviour
         public int answer;
         [HideInInspector]
         public bool correctAnswerHit = false;
+        public AudioClip correctAnswerSound;
+        public AudioClip incorrectAnswerSound;
+        public AudioSource[] gameMusic;
+        public AudioSource lobbyMusic;
+        public float musicFadeTime;
     }
     public Game game;
     [System.Serializable]
@@ -67,6 +73,7 @@ public class GameManager : MonoBehaviour
         public bool leftGrabbing, rightGrabbing;
         public float stringGrabRadius;
         public Vector3 grabPoint;
+        public AudioClip grabSound;
         public GameObject leftHandedBow, rightHandedBow;
         public GameObject arrowToShoot;
         public float arrowStrengthMultiplier;
@@ -76,6 +83,7 @@ public class GameManager : MonoBehaviour
         [HideInInspector]
         public bool leftGrabbingString, rightGrabbingString;
         public float stringDisconnectThreshold;
+        public AudioClip bowReleaseSound;
         public Vector3 stringLeftGrabPositionOffset, stringRightGrabPositionOffset, stringLeftGrabRotationOffset, stringRightGrabRotationOffset;
         public InputActionProperty leftGrabInput, rightGrabInput;
         [HideInInspector]
@@ -159,6 +167,9 @@ public class GameManager : MonoBehaviour
     {
         float timer = 0;
         GenerateAnswer(gameModeChosen);
+        game.score = 0;
+        int randomMusic = Random.Range(0, game.gameMusic.Length - 1);
+        StartCoroutine(FadeMusic(game.gameMusic[randomMusic], game.lobbyMusic, 1, 0.1f));
         while (game.score < game.questionsToAnswer)
         {
             timer += Time.deltaTime;
@@ -167,6 +178,7 @@ public class GameManager : MonoBehaviour
                 int randomColor = Random.Range(0, game.potentialAnswer.Length - 1);
                 int randomSpawnPoint = Random.Range(0, game.spawnPoints.Length - 1);
                 PotentialAnswer spawnedPotentialAnswer = Instantiate(game.potentialAnswer[randomColor], game.spawnPoints[randomSpawnPoint].position, Quaternion.LookRotation(game.spawnPoints[randomSpawnPoint].position - Vector3.zero, Vector3.up)).GetComponent<PotentialAnswer>();
+                AudioSource.PlayClipAtPoint(game.potentialAnswerSound, game.spawnPoints[randomSpawnPoint].position, 0.15f);
                 spawnedPotentialAnswer.body.AddForce(Vector3.up * 150, ForceMode.Force);
 
                 bool isAnswer = Random.Range(1, (int)(1 / game.oddsOfAnswer) + 1) == 1;
@@ -199,8 +211,31 @@ public class GameManager : MonoBehaviour
             game.scoreText.text = $"Score: {game.score}";
             yield return null;
         }
+        StartCoroutine(FadeMusic(game.lobbyMusic, game.gameMusic[randomMusic], 0.1f, 1));
         game.gameModeSelectionUI.SetActive(true);
         game.gameUI.SetActive(false);
+        yield return null;
+    }
+    IEnumerator FadeMusic(AudioSource fadeIn, AudioSource fadeOut, float volumeFadeOut, float volumeFadeIn)
+    {
+        float timer = 0;
+        while (timer < game.musicFadeTime)
+        {
+            timer += Time.deltaTime;
+            fadeOut.volume = Mathf.Lerp(volumeFadeOut, 0, timer / game.musicFadeTime);
+            yield return null;
+        }
+        fadeOut.Stop();
+        fadeOut.volume = volumeFadeOut;
+        fadeIn.Play();
+        fadeIn.volume = 0;
+        timer = 0;
+        while (timer < game.musicFadeTime)
+        {
+            timer += Time.deltaTime;
+            fadeIn.volume = Mathf.Lerp(0, volumeFadeIn, timer / game.musicFadeTime);
+            yield return null;
+        }
         yield return null;
     }
     void GenerateAnswer(string gameModeChosen)
@@ -281,7 +316,11 @@ public class GameManager : MonoBehaviour
                         if (colliderLeft[0].name != "StringGrabPoint")
                             colliderLeft = null;
                         else if (bow.leftGrabInput.action.ReadValue<float>() > 0.25f)
+                        {
+                            if (!bow.leftGrabbingString)
+                                AudioSource.PlayClipAtPoint(bow.grabSound, controller.leftController.transform.position - (controller.leftController.rotation * bow.grabPoint), 0.15f);
                             bow.leftGrabbingString = true;
+                        }
                     }
                 }
             }
@@ -291,6 +330,8 @@ public class GameManager : MonoBehaviour
                     colliderRight = null;
                 if (bow.rightGrabInput.action.ReadValue<float>() > 0.25f) 
                 {
+                    if (!bow.rightGrabbingString)
+                        AudioSource.PlayClipAtPoint(bow.grabSound, controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), 0.15f);
                     bow.rightGrabbingString = true;
                 }
             }
@@ -407,6 +448,7 @@ public class GameManager : MonoBehaviour
         Rigidbody spawnedArrow = Instantiate(bow.arrowToShoot, bow.spawnedBow.transform.position, bow.spawnedBow.transform.rotation).GetComponent<Rigidbody>();
         spawnedArrow.AddForce(bow.spawnedBow.arrowModel.transform.forward * (bow.shotStrength * 1000  * bow.arrowStrengthMultiplier), ForceMode.Force);
         Destroy(spawnedArrow.gameObject, 3);
+        AudioSource.PlayClipAtPoint(bow.bowReleaseSound, spawnedArrow.position, 0.5f);
     }
     public void HandsReachedTarget()
     {

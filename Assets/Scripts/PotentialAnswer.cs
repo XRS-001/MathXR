@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using static GameManager;
 
 public class PotentialAnswer : MonoBehaviour
 {
@@ -15,7 +16,12 @@ public class PotentialAnswer : MonoBehaviour
         if(isAnswer && !hasHit)
         {
             GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
+            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 1.25f);
             hasHit = true;
+        }
+        else if (!hasHit)
+        {
+            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 1.25f);
         }
     }
 }
