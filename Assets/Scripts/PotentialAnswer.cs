@@ -16,12 +16,13 @@ public class PotentialAnswer : MonoBehaviour
         if(isAnswer && !hasHit)
         {
             GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
-            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 1.25f);
+            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 2);
             hasHit = true;
         }
         else if (!hasHit)
         {
-            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 1.25f);
+            GameObject.Find("GameManager").GetComponent<GameManager>().game.score--;
+            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 2);
         }
     }
 }

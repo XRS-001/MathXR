@@ -160,7 +160,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hitSound: {fileID: 8300000, guid: c75608a8407542a48919ed8ba321e249, type: 3}
-  hitVolume: 30
+  hitVolume: 100
   timeUntilCanHit: 0.01
 --- !u!1 &1970313516193434005
 GameObject:

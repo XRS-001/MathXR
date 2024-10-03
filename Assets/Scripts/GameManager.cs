@@ -169,7 +169,7 @@ public class GameManager : MonoBehaviour
         GenerateAnswer(gameModeChosen);
         game.score = 0;
         int randomMusic = Random.Range(0, game.gameMusic.Length - 1);
-        StartCoroutine(FadeMusic(game.gameMusic[randomMusic], game.lobbyMusic, 1, 0.1f));
+        StartCoroutine(FadeMusic(game.gameMusic[randomMusic], game.lobbyMusic, 1, 0.3f));
         while (game.score < game.questionsToAnswer)
         {
             timer += Time.deltaTime;
@@ -178,7 +178,7 @@ public class GameManager : MonoBehaviour
                 int randomColor = Random.Range(0, game.potentialAnswer.Length - 1);
                 int randomSpawnPoint = Random.Range(0, game.spawnPoints.Length - 1);
                 PotentialAnswer spawnedPotentialAnswer = Instantiate(game.potentialAnswer[randomColor], game.spawnPoints[randomSpawnPoint].position, Quaternion.LookRotation(game.spawnPoints[randomSpawnPoint].position - Vector3.zero, Vector3.up)).GetComponent<PotentialAnswer>();
-                AudioSource.PlayClipAtPoint(game.potentialAnswerSound, game.spawnPoints[randomSpawnPoint].position, 0.15f);
+                AudioSource.PlayClipAtPoint(game.potentialAnswerSound, game.spawnPoints[randomSpawnPoint].position, 0.25f);
                 spawnedPotentialAnswer.body.AddForce(Vector3.up * 150, ForceMode.Force);
 
                 bool isAnswer = Random.Range(1, (int)(1 / game.oddsOfAnswer) + 1) == 1;
@@ -211,7 +211,7 @@ public class GameManager : MonoBehaviour
             game.scoreText.text = $"Score: {game.score}";
             yield return null;
         }
-        StartCoroutine(FadeMusic(game.lobbyMusic, game.gameMusic[randomMusic], 0.1f, 1));
+        StartCoroutine(FadeMusic(game.lobbyMusic, game.gameMusic[randomMusic], 0.3f, 1));
         game.gameModeSelectionUI.SetActive(true);
         game.gameUI.SetActive(false);
         yield return null;
@@ -448,7 +448,7 @@ public class GameManager : MonoBehaviour
         Rigidbody spawnedArrow = Instantiate(bow.arrowToShoot, bow.spawnedBow.transform.position, bow.spawnedBow.transform.rotation).GetComponent<Rigidbody>();
         spawnedArrow.AddForce(bow.spawnedBow.arrowModel.transform.forward * (bow.shotStrength * 1000  * bow.arrowStrengthMultiplier), ForceMode.Force);
         Destroy(spawnedArrow.gameObject, 3);
-        AudioSource.PlayClipAtPoint(bow.bowReleaseSound, spawnedArrow.position, 0.5f);
+        AudioSource.PlayClipAtPoint(bow.bowReleaseSound, spawnedArrow.position, 1.25f);
     }
     public void HandsReachedTarget()
     {
