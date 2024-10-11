@@ -71,6 +71,8 @@ public class GameManager : MonoBehaviour
         public bool leftHanded = false;
         [HideInInspector]
         public bool leftGrabbing, rightGrabbing;
+        [HideInInspector]
+        public Quaternion initialOffset;
         public float stringGrabRadius;
         public Vector3 grabPoint;
         public AudioClip grabSound;
@@ -82,6 +84,8 @@ public class GameManager : MonoBehaviour
         public BowSettings spawnedBow;
         [HideInInspector]
         public bool leftGrabbingString, rightGrabbingString;
+        [HideInInspector]
+        public bool canGrabString = true;
         public float stringDisconnectThreshold;
         public AudioClip bowReleaseSound;
         public Vector3 stringLeftGrabPositionOffset, stringRightGrabPositionOffset, stringLeftGrabRotationOffset, stringRightGrabRotationOffset;
@@ -99,6 +103,7 @@ public class GameManager : MonoBehaviour
     private GameModeSelection gameMode;
     public void StartGame()
     {
+        bow.canGrabString = true;
         controller.leftHandControllerMesh.SetActive(false);
         controller.rayOffsetLeft.localPosition = controller.rayCharacterLeftHandOffset;
         controller.rightHandControllerMesh.SetActive(false);
@@ -303,36 +308,41 @@ public class GameManager : MonoBehaviour
     }
     private void Update()
     {
-        if(Physics.CheckSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius) || Physics.CheckSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius))
+        if(bow.canGrabString)
         {
-            Collider[] colliderRight = Physics.OverlapSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius);
-            if (colliderRight.Length == 0)
+            if (Physics.CheckSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius) || Physics.CheckSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius))
             {
-                Collider[] colliderLeft = Physics.OverlapSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius);
-                if(colliderLeft.Length > 0)
+                Collider[] colliderRight = Physics.OverlapSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius);
+                if (colliderRight.Length == 0)
                 {
-                    if (colliderLeft[0])
+                    Collider[] colliderLeft = Physics.OverlapSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius);
+                    if (colliderLeft.Length > 0)
                     {
-                        if (colliderLeft[0].name != "StringGrabPoint")
-                            colliderLeft = null;
-                        else if (bow.leftGrabInput.action.ReadValue<float>() > 0.25f)
+                        if (colliderLeft[0])
                         {
-                            if (!bow.leftGrabbingString)
-                                AudioSource.PlayClipAtPoint(bow.grabSound, controller.leftController.transform.position - (controller.leftController.rotation * bow.grabPoint), 0.15f);
-                            bow.leftGrabbingString = true;
+                            if (colliderLeft[0].name != "StringGrabPoint")
+                                colliderLeft = null;
+                            else if (bow.leftGrabInput.action.ReadValue<float>() > 0.25f)
+                            {
+                                if (!bow.leftGrabbingString)
+                                    AudioSource.PlayClipAtPoint(bow.grabSound, controller.leftController.transform.position - (controller.leftController.rotation * bow.grabPoint), 0.15f);
+                                bow.leftGrabbingString = true;
+                                bow.initialOffset = Quaternion.Inverse(Quaternion.LookRotation(controller.leftController.position - controller.rightController.position, controller.rightController.up) * Quaternion.Euler(0, 90, -90)) * controller.rightIKTarget.rotation;
+                            }
                         }
                     }
                 }
-            }
-            else if (colliderRight[0])
-            {
-                if (colliderRight[0].name != "StringGrabPoint")
-                    colliderRight = null;
-                if (bow.rightGrabInput.action.ReadValue<float>() > 0.25f) 
+                else if (colliderRight[0])
                 {
-                    if (!bow.rightGrabbingString)
-                        AudioSource.PlayClipAtPoint(bow.grabSound, controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), 0.15f);
-                    bow.rightGrabbingString = true;
+                    if (colliderRight[0].name != "StringGrabPoint")
+                        colliderRight = null;
+                    if (bow.rightGrabInput.action.ReadValue<float>() > 0.25f)
+                    {
+                        if (!bow.rightGrabbingString)
+                            AudioSource.PlayClipAtPoint(bow.grabSound, controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), 0.15f);
+                        bow.rightGrabbingString = true;
+                        bow.initialOffset = Quaternion.Inverse(Quaternion.LookRotation(controller.rightController.position - controller.leftController.position, controller.leftController.up) * Quaternion.Euler(0, -90, 90)) * controller.leftIKTarget.rotation;
+                    }
                 }
             }
         }
@@ -340,6 +350,7 @@ public class GameManager : MonoBehaviour
         {
             bow.hasFiredArrow = false;
             bow.spawnedBow.arrowModel.SetActive(true);
+            controller.leftIKTarget.rotation = Quaternion.LookRotation(controller.rightController.position - controller.leftController.position, controller.leftController.up) * Quaternion.Euler(0, -90, 90) * bow.initialOffset;
             if (!bow.handsReachingTarget)
             {
                 Invoke(nameof(HandsReachedTarget), 0.1f);
@@ -368,10 +379,44 @@ public class GameManager : MonoBehaviour
         }
         else if (bow.leftGrabbingString)
         {
-            
+            bow.hasFiredArrow = false;
+            bow.spawnedBow.arrowModel.SetActive(true);
+            controller.rightIKTarget.rotation = Quaternion.LookRotation(controller.leftController.position - controller.rightController.position, controller.rightController.up) * Quaternion.Euler(0, 90, -90) * bow.initialOffset;
+            if (!bow.handsReachingTarget)
+            {
+                Invoke(nameof(HandsReachedTarget), 0.1f);
+                bow.handsReachingTarget = true;
+            }
+            if (!bow.handsReachedTarget)
+            {
+                controller.leftIKTarget.position = Vector3.Lerp(controller.leftIKTarget.position, bow.spawnedBow.stringArmaturePiece.transform.position - (bow.spawnedBow.stringArmaturePiece.transform.rotation * bow.stringLeftGrabPositionOffset), 0.3f);
+                controller.leftIKTarget.rotation = Quaternion.Slerp(controller.leftIKTarget.rotation, bow.spawnedBow.stringArmaturePiece.transform.rotation * Quaternion.Euler(bow.stringLeftGrabRotationOffset), 0.3f);
+            }
+            else
+            {
+                controller.leftIKTarget.position = bow.spawnedBow.stringArmaturePiece.transform.position - (bow.spawnedBow.stringArmaturePiece.transform.rotation * bow.stringLeftGrabPositionOffset);
+                controller.leftIKTarget.rotation = bow.spawnedBow.stringArmaturePiece.transform.rotation * Quaternion.Euler(bow.stringLeftGrabRotationOffset);
+            }
+            Vector3 handInBowSpace = bow.spawnedBow.stringGrabPoint.transform.InverseTransformPoint(controller.leftController.position);
+            handInBowSpace = new Vector3(bow.spawnedBow.stringGrabPoint.transform.position.x, bow.spawnedBow.stringGrabPoint.transform.position.y, handInBowSpace.z);
+            if (!bow.offsetSet)
+            {
+                bow.stringGrabOffset = handInBowSpace - bow.spawnedBow.stringGrabPoint.transform.position;
+                bow.offsetSet = true;
+            }
+            float pullBackValue = Mathf.Lerp(bow.spawnedBow.GetComponent<Animator>().GetFloat("PullBack"), Mathf.Clamp(Mathf.Clamp((bow.spawnedBow.stringGrabPoint.transform.position - (handInBowSpace - bow.stringGrabOffset)).z, 0, float.PositiveInfinity) / bow.stringDistanceTarget, 0, 1), 0.1f);
+            bow.spawnedBow.GetComponent<Animator>().SetFloat("PullBack", pullBackValue);
+            bow.shotStrength = pullBackValue;
         }
         if ((bow.rightGrabInput.action.ReadValue<float>() < 0.25f || Vector3.Distance(controller.leftIKTarget.position, controller.leftHandBonePoint.position) > bow.stringDisconnectThreshold) && !bow.leftGrabbingString)
         {
+            if (bow.shotStrength > 0.5f && !bow.hasFiredArrow)
+            {
+                FireArrow();
+                bow.hasFiredArrow = true;
+                bow.canGrabString = false;
+                Invoke(nameof(CanGrabString), 0.1f);
+            }
             bow.rightGrabbingString = false;
             if(bow.spawnedBow)
                 bow.spawnedBow.GetComponent<Animator>().SetFloat("PullBack", Mathf.Lerp(bow.spawnedBow.GetComponent<Animator>().GetFloat("PullBack"), 0, 0.3f));
@@ -383,6 +428,7 @@ public class GameManager : MonoBehaviour
             }
             if (controller.rightIKTarget && bow.offsetSet && !bow.handsReachedTarget)
             {
+                controller.rightIKTarget.rotation = controller.rightIKTargetStartRotation;
                 controller.rightIKTarget.localPosition = controller.rightIKTargetStartPosition;
                 controller.rightIKTarget.localRotation = controller.rightIKTargetStartRotation;
 
@@ -399,15 +445,17 @@ public class GameManager : MonoBehaviour
                 if (controller.leftIKTarget)
                     controller.leftIKTarget.localRotation = Quaternion.Slerp(controller.leftIKTarget.localRotation, controller.leftIKTargetStartRotation, 0.3f);
             }
-            if (bow.shotStrength > 0.5f && !bow.hasFiredArrow)
-            {
-                FireArrow();
-                bow.hasFiredArrow = true;
-            }
         }
 
         if ((bow.leftGrabInput.action.ReadValue<float>() < 0.25f || Vector3.Distance(controller.leftIKTarget.position, controller.leftHandBonePoint.position) > bow.stringDisconnectThreshold) && !bow.rightGrabbingString)
         {
+            if (bow.shotStrength > 0.5f && !bow.hasFiredArrow)
+            {
+                FireArrow();
+                bow.hasFiredArrow = true;
+                bow.canGrabString = false;
+                Invoke(nameof(CanGrabString), 0.1f);
+            }
             bow.leftGrabbingString = false;
             if (bow.spawnedBow)
                 bow.spawnedBow.GetComponent<Animator>().SetFloat("PullBack", Mathf.Lerp(bow.spawnedBow.GetComponent<Animator>().GetFloat("PullBack"), 0, 0.3f));
@@ -419,6 +467,7 @@ public class GameManager : MonoBehaviour
             }
             if (controller.leftIKTarget && bow.offsetSet && !bow.handsReachedTarget)
             {
+                controller.leftIKTarget.rotation = controller.leftIKTargetStartRotation;
                 controller.leftIKTarget.localPosition = controller.leftIKTargetStartPosition;
                 controller.leftIKTarget.localRotation = controller.leftIKTargetStartRotation;
 
@@ -435,12 +484,11 @@ public class GameManager : MonoBehaviour
                 if (controller.rightIKTarget)
                     controller.rightIKTarget.localRotation = Quaternion.Slerp(controller.rightIKTarget.localRotation, controller.rightIKTargetStartRotation, 0.3f);
             }
-            if (bow.shotStrength > 0.5f && !bow.hasFiredArrow)
-            {
-                FireArrow();
-                bow.hasFiredArrow = true;
-            }
         }
+    }
+    void CanGrabString()
+    {
+        bow.canGrabString = true;
     }
     public void FireArrow()
     {

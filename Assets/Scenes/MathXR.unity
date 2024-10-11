@@ -1376,7 +1376,7 @@ Light:
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -2548,7 +2548,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1013192099
 Transform:
   m_ObjectHideFlags: 0
@@ -3079,6 +3079,7 @@ GameObject:
   - component: {fileID: 1335103517}
   - component: {fileID: 1335103516}
   - component: {fileID: 1335103518}
+  - component: {fileID: 1335103519}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -3157,27 +3158,30 @@ MonoBehaviour:
     leftHanded: 0
     leftGrabbing: 0
     rightGrabbing: 0
+    initialOffset: {x: 0, y: 0, z: 0, w: 0}
     stringGrabRadius: 0.05
     grabPoint: {x: 0.03, y: -0.05, z: 0.03}
     grabSound: {fileID: 8300000, guid: 9b0c2c045a1e0124e974a9390d03e453, type: 3}
-    leftHandedBow: {fileID: 0}
+    leftHandedBow: {fileID: 6467350737660902997, guid: 294e59c1dedc65148be06f5c8a5d283e,
+      type: 3}
     rightHandedBow: {fileID: 6467350737660902997, guid: 294e59c1dedc65148be06f5c8a5d283e,
       type: 3}
     arrowToShoot: {fileID: 1349136880123137079, guid: 4d1355a6db7467642bc898ee9f95052a,
       type: 3}
     arrowStrengthMultiplier: 3
-    leftBowPositionOffset: {x: 0, y: 0, z: 0}
-    leftBowRotationOffset: {x: 0, y: 0, z: 0}
+    leftBowPositionOffset: {x: -0.122, y: 0.129, z: 0.027}
+    leftBowRotationOffset: {x: 0, y: 9.445, z: 90}
     rightBowPositionOffset: {x: 0.08, y: 0.1222, z: 0.0271}
     rightBowRotationOffset: {x: 0, y: -10.5, z: 82.91}
     spawnedBow: {fileID: 0}
     leftGrabbingString: 0
     rightGrabbingString: 0
+    canGrabString: 0
     stringDisconnectThreshold: 1
     bowReleaseSound: {fileID: 8300000, guid: e04b68add7d4d344aad6833bf8718e6f, type: 3}
-    stringLeftGrabPositionOffset: {x: 0, y: 0, z: 0}
+    stringLeftGrabPositionOffset: {x: 0.02, y: -0.08, z: -0.02}
     stringRightGrabPositionOffset: {x: -0.02, y: -0.08, z: -0.02}
-    stringLeftGrabRotationOffset: {x: 0, y: 0, z: 0}
+    stringLeftGrabRotationOffset: {x: 180, y: 0, z: 0}
     stringRightGrabRotationOffset: {x: 180, y: 0, z: 0}
     leftGrabInput:
       m_UseReference: 1
@@ -3323,6 +3327,30 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!167 &1335103519
+AudioReverbZone:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335103515}
+  m_Enabled: 1
+  m_MinDistance: 10
+  m_MaxDistance: 15
+  m_ReverbPreset: 18
+  m_Room: -1000
+  m_RoomHF: -2500
+  m_DecayTime: 1.49
+  m_DecayHFRatio: 0.21
+  m_Reflections: -2780
+  m_ReflectionsDelay: 0.3
+  m_Reverb: -1434
+  m_ReverbDelay: 0.1
+  m_HFReference: 5000
+  m_Diffusion: 27
+  m_Density: 100
+  m_LFReference: 250
+  m_RoomLF: 0
 --- !u!1 &1340408799
 GameObject:
   m_ObjectHideFlags: 0
@@ -3371,7 +3399,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1406562191
 Transform:
   m_ObjectHideFlags: 0
@@ -4205,7 +4233,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1507455695
 Transform:
   m_ObjectHideFlags: 0
@@ -5142,7 +5170,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1788629361
 Transform:
   m_ObjectHideFlags: 0
@@ -10010,9 +10038,9 @@ MonoBehaviour:
     index2: {fileID: 6051840860756847740}
     index3: {fileID: 4945456330322422320}
   grabbedIndexFingerBones:
-    index1: {fileID: 0}
-    index2: {fileID: 0}
-    index3: {fileID: 0}
+    index1: {fileID: 7439001982547736591}
+    index2: {fileID: 6051840860756847740}
+    index3: {fileID: 4945456330322422320}
 --- !u!95 &8485889040599598451
 Animator:
   serializedVersion: 5
