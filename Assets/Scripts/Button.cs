@@ -9,6 +9,7 @@ public class Button : MonoBehaviour
 {
     private GameManager gameManager;
     public Image buttonImage;
+    public SpriteRenderer buttonRenderer;
     public UnityEvent pressEvent;
     public AudioClip pressSound;
 
@@ -19,13 +20,36 @@ public class Button : MonoBehaviour
 
     public void HoverButton()
     {
-        buttonImage.CrossFadeAlpha(0.5f, 0.15f, false);
+        if(buttonImage != null)
+            buttonImage.CrossFadeAlpha(0.5f, 0.15f, false);
+        else
+            StartCoroutine(RendererCrossFadeAlpha(0.15f, 0.5f, true));
+    }
+    IEnumerator RendererCrossFadeAlpha(float time, float alpha, bool hovering)
+    {
+        Color color = buttonRenderer.color;
+        float timer = 0;
+        while (timer < time)
+        {
+            if (hovering)
+                color.a = Mathf.Lerp(1, alpha, timer / time);
+            else
+                color.a = Mathf.Lerp(alpha, 1, timer / time);
+
+            timer += Time.deltaTime;
+            buttonRenderer.color = color;
+            yield return null;
+        }
+        yield return null;
     }
     public void UnHoverButton()
     {
-        buttonImage.CrossFadeAlpha(1, 0.15f, false);
+        if (buttonImage != null)
+            buttonImage.CrossFadeAlpha(1, 0.15f, false);
+        else
+            if (isActiveAndEnabled)
+                StartCoroutine(RendererCrossFadeAlpha(0.15f, 0.5f, false));
     }
-    [ContextMenu("Call PressButton")]
     public void PressButton()
     {
         pressEvent.Invoke();

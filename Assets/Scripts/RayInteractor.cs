@@ -83,7 +83,7 @@ public class RayInteractor : MonoBehaviour
                     if (UIPressButton.action.ReadValue<float>() > 0.5f && button && canPress)
                     {
                         button.PressButton();
-                        Invoke(nameof(DelayCanPress), 0.5f);
+                        Invoke(nameof(DelayCanPress), 0.2f);
                         canPress = false;
                     }
                 }

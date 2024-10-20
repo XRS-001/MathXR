@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3168117459015809913}
   - component: {fileID: 1773441204681546835}
   - component: {fileID: 3209831533420553093}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: ArrowHead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -94,7 +94,7 @@ GameObject:
   - component: {fileID: 1551844693735671440}
   - component: {fileID: 8130790547504341447}
   - component: {fileID: 5618388000824084031}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: ArrowToShoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -173,7 +173,7 @@ GameObject:
   - component: {fileID: 2909360700170316212}
   - component: {fileID: 4926783576627877177}
   - component: {fileID: 9041917688696332295}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: ArrowFins
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -257,7 +257,7 @@ GameObject:
   - component: {fileID: 1610471006937659114}
   - component: {fileID: 6312179596571376854}
   - component: {fileID: 8250475781829140409}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Arrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -360,7 +360,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1372849516721528670}
   - component: {fileID: 6930094522850039665}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Trail
   m_TagString: Untagged
   m_Icon: {fileID: 0}

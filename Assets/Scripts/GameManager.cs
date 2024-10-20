@@ -6,6 +6,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SocialPlatforms.Impl;
+using static GameManager;
 
 public class GameManager : MonoBehaviour
 {
@@ -38,20 +39,29 @@ public class GameManager : MonoBehaviour
     public Controller controller;
     public GameObject playerMesh;
     public VRIKCalibrationBasic VRIKCalibration;
+    public GripManager gripManager;
+    public Animator[] leftAnimators;
+    public Animator[] rightAnimators;
     [System.Serializable]
     public class Game
     {
-        public GameObject startUI;
-        public GameObject handSelectionUI;
-        public GameObject gameModeSelectionUI;
-        public GameObject gameUI;
+        public GameObject gameUIEnglish;
+        public GameObject weaponMenuEnglish;
+        public GameObject gameUIIrish;
+        public GameObject weaponMenuIrish;
+        public bool leftHanded = false;
+        public enum Language { english, irish }
+        public Language language;
+        public GameObject englishUI;
+        public GameObject irishUI;
         public Transform[] spawnPoints;
         public PotentialAnswer[] potentialAnswer;
         public AudioClip potentialAnswerSound;
         public TextMeshProUGUI questionText, scoreText;
         public int questionsToAnswer;
-        public float timeBetweenPotentialAnswers;
+        public float answersPerSecond;
         public float oddsOfAnswer;
+        public float potentialAnswerDragMultiplier;
         [HideInInspector]
         public int score;
         [HideInInspector]
@@ -68,7 +78,6 @@ public class GameManager : MonoBehaviour
     [System.Serializable]
     public class Bow
     {
-        public bool leftHanded = false;
         [HideInInspector]
         public bool leftGrabbing, rightGrabbing;
         [HideInInspector]
@@ -76,7 +85,7 @@ public class GameManager : MonoBehaviour
         public float stringGrabRadius;
         public Vector3 grabPoint;
         public AudioClip grabSound;
-        public GameObject leftHandedBow, rightHandedBow;
+        public GameObject bowItem;
         public GameObject arrowToShoot;
         public float arrowStrengthMultiplier;
         public Vector3 leftBowPositionOffset, leftBowRotationOffset, rightBowPositionOffset, rightBowRotationOffset;
@@ -96,11 +105,43 @@ public class GameManager : MonoBehaviour
         public Vector3 stringGrabOffset;
         public float stringDistanceTarget;
         [HideInInspector]
-        public float shotStrength;
+        public float shotStrength; 
+        public Transform[] leftGrip;
+        public Transform[] rightGrip;
     }
     public Bow bow;
+    [System.Serializable]
+    public class Gun
+    {
+        [HideInInspector]
+        public bool leftGrabbing, rightGrabbing;
+        public GameObject gunItem;
+        public GameObject bulletToShoot;
+        public Vector3 bulletShootPoint;
+        public AudioClip fireSound;
+        public bool canShoot = true;
+        public float bulletStrengthMultiplier;
+        public Vector3 leftPositionOffset, leftRotationOffset, rightPositionOffset, rightRotationOffset;
+        [HideInInspector]
+        public GameObject spawnedGun;
+        public InputActionProperty leftShootInput, rightShootInput;
+        public Transform[] leftGrip;
+        public Transform[] rightGrip;
+    }
+    public Gun gun;
     public enum GameModeSelection { additionAndSubtraction, multiplication, division }
     private GameModeSelection gameMode;
+    public enum ChangeableGameValues { spawnRate, questions, speed }
+    private GameModeSelection changeableGameValues;
+    public enum WeaponChosen { bow, gun, shuriken }
+    private WeaponChosen weaponChosen;
+    private void Start()
+    {
+        if(game.language == Game.Language.english)
+            game.englishUI.SetActive(true);
+        else
+            game.irishUI.SetActive(true);
+    }
     public void StartGame()
     {
         bow.canGrabString = true;
@@ -110,8 +151,6 @@ public class GameManager : MonoBehaviour
         controller.rayOffsetRight.localPosition = controller.rayCharacterRightHandOffset;
         playerMesh.SetActive(true);
         VRIKCalibration.Calibrate();
-        game.startUI.SetActive(false);
-        game.handSelectionUI.SetActive(true);
 
         controller.leftIKTarget = GameObject.Find("Left Hand IK Target").transform;
         controller.leftIKTargetStartPosition = controller.leftIKTarget.localPosition;
@@ -121,51 +160,144 @@ public class GameManager : MonoBehaviour
         controller.rightIKTargetStartPosition = controller.rightIKTarget.localPosition;
         controller.rightIKTargetStartRotation = controller.rightIKTarget.localRotation;
     }
+    public void ChangeValues(ChangeableGameValues valueToChange, double value, TextMeshProUGUI text)
+    {
+        switch(valueToChange)
+        {
+            case ChangeableGameValues.spawnRate:
+                if (game.answersPerSecond + (float)value > 0)
+                {
+                    game.answersPerSecond += (float)value;
+                    text.text = game.answersPerSecond.ToString("0.0");
+                }
+                break;
+
+            case ChangeableGameValues.questions:
+                if(game.questionsToAnswer + (int)value > 0)
+                {
+                    game.questionsToAnswer += (int)value;
+                    text.text = game.questionsToAnswer.ToString();
+                }
+                break;
+
+            case ChangeableGameValues.speed:
+                if (game.potentialAnswerDragMultiplier + (int)value > 0.3f && game.potentialAnswerDragMultiplier + (int)value < 5)
+                {
+                    game.potentialAnswerDragMultiplier += (float)value;
+                    text.text = (float.Parse(text.text) + (float)value).ToString("0.0");
+                }
+                break;
+        }
+    }
     public void HandPicked(bool isLeftHanded)
     {
         if (isLeftHanded)
-            bow.leftHanded = true;
-        game.handSelectionUI.SetActive(false);
-        game.gameModeSelectionUI.SetActive(true);
+            game.leftHanded = true;
+    }
+    public void PickWeapon(string weaponChosenString)
+    {
+        switch (weaponChosenString)
+        {
+            case "Bow":
+                weaponChosen = WeaponChosen.bow;
+                break;
+
+            case "Gun":
+                weaponChosen = WeaponChosen.gun;
+                break;
+
+            case "Shuriken":
+                weaponChosen = WeaponChosen.shuriken;
+                break;
+        }
     }
     public void PickGameMode(string gameModeChosen)
     {
         switch (gameModeChosen)
         {
             case "Addition & Subtraction":
-                game.gameModeSelectionUI.SetActive(false);
-                game.gameUI.SetActive(true);
                 StartCoroutine(RunGame(gameModeChosen));
                 break;
 
             case "Multiplication":
-                game.gameModeSelectionUI.SetActive(false);
-                game.gameUI.SetActive(true);
                 StartCoroutine(RunGame(gameModeChosen));
                 break;
 
             case "Division":
-                game.gameModeSelectionUI.SetActive(false);
-                game.gameUI.SetActive(true);
                 StartCoroutine(RunGame(gameModeChosen));
                 break;
         }
-        if (!bow.spawnedBow)
+        switch(weaponChosen)
         {
-            if (bow.leftHanded)
-            {
-                bow.spawnedBow = Instantiate(bow.leftHandedBow, controller.rightIKTarget).GetComponent<BowSettings>();
-                bow.spawnedBow.transform.localPosition = bow.leftBowPositionOffset;
-                bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.leftBowRotationOffset);
-                bow.leftGrabbing = true;
-            }
-            else
-            {
-                bow.spawnedBow = Instantiate(bow.rightHandedBow, controller.leftIKTarget).GetComponent<BowSettings>();
-                bow.spawnedBow.transform.localPosition = bow.rightBowPositionOffset;
-                bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
-                bow.rightGrabbing = true;
-            }
+            case WeaponChosen.bow:
+                if (!bow.spawnedBow)
+                {
+                    if (game.leftHanded)
+                    {
+                        bow.spawnedBow = Instantiate(bow.bowItem, controller.rightIKTarget).GetComponent<BowSettings>();
+                        bow.spawnedBow.transform.localPosition = bow.leftBowPositionOffset;
+                        bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.leftBowRotationOffset);
+                        bow.leftGrabbing = true;
+                        gripManager.handBonesTarget = bow.rightGrip;
+                        gripManager.handAnimators = rightAnimators;
+                        gripManager.GripWithRight(false);
+                    }
+                    else
+                    {
+                        bow.spawnedBow = Instantiate(bow.bowItem, controller.leftIKTarget).GetComponent<BowSettings>();
+                        bow.spawnedBow.transform.localPosition = bow.rightBowPositionOffset;
+                        bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
+                        bow.rightGrabbing = true;
+                        gripManager.handBonesTarget = bow.leftGrip;
+                        gripManager.handAnimators = leftAnimators;
+                        gripManager.GripWithLeft(false);
+                    }
+                }
+                break;
+            case WeaponChosen.gun:
+                if (!gun.spawnedGun)
+                {
+                    if (game.leftHanded)
+                    {
+                        gun.spawnedGun = Instantiate(gun.gunItem, controller.leftIKTarget);
+                        gun.spawnedGun.transform.localPosition = gun.leftPositionOffset;
+                        gun.spawnedGun.transform.localRotation = Quaternion.Euler(gun.leftRotationOffset);
+                        gun.leftGrabbing = true;
+                        gripManager.handBonesTarget = gun.leftGrip;
+                        gripManager.handAnimators= leftAnimators;
+                        gripManager.GripWithLeft(false);
+                    }
+                    else
+                    {
+                        gun.spawnedGun = Instantiate(gun.gunItem, controller.rightIKTarget);
+                        gun.spawnedGun.transform.localPosition = gun.rightPositionOffset;
+                        gun.spawnedGun.transform.localRotation = Quaternion.Euler(gun.rightRotationOffset);
+                        gun.rightGrabbing = true;
+                        gripManager.handBonesTarget = gun.rightGrip;
+                        gripManager.handAnimators = rightAnimators;
+                        gripManager.GripWithRight(false);
+                    }
+                }
+                break;
+            case WeaponChosen.shuriken:
+                if (!bow.spawnedBow)
+                {
+                    if (game.leftHanded)
+                    {
+                        bow.spawnedBow = Instantiate(bow.bowItem, controller.rightIKTarget).GetComponent<BowSettings>();
+                        bow.spawnedBow.transform.localPosition = bow.leftBowPositionOffset;
+                        bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.leftBowRotationOffset);
+                        bow.leftGrabbing = true;
+                    }
+                    else
+                    {
+                        bow.spawnedBow = Instantiate(bow.bowItem, controller.leftIKTarget).GetComponent<BowSettings>();
+                        bow.spawnedBow.transform.localPosition = bow.rightBowPositionOffset;
+                        bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
+                        bow.rightGrabbing = true;
+                    }
+                }
+                break;
         }
     }
     IEnumerator RunGame(string gameModeChosen)
@@ -178,13 +310,15 @@ public class GameManager : MonoBehaviour
         while (game.score < game.questionsToAnswer)
         {
             timer += Time.deltaTime;
-            if(timer > game.timeBetweenPotentialAnswers)
+            if(timer > 1 / game.answersPerSecond)
             {
                 int randomColor = Random.Range(0, game.potentialAnswer.Length - 1);
                 int randomSpawnPoint = Random.Range(0, game.spawnPoints.Length - 1);
                 PotentialAnswer spawnedPotentialAnswer = Instantiate(game.potentialAnswer[randomColor], game.spawnPoints[randomSpawnPoint].position, Quaternion.LookRotation(game.spawnPoints[randomSpawnPoint].position - Vector3.zero, Vector3.up)).GetComponent<PotentialAnswer>();
+                Destroy(spawnedPotentialAnswer.gameObject, 10);
                 AudioSource.PlayClipAtPoint(game.potentialAnswerSound, game.spawnPoints[randomSpawnPoint].position, 0.25f);
-                spawnedPotentialAnswer.body.AddForce(Vector3.up * 150, ForceMode.Force);
+                spawnedPotentialAnswer.body.drag = 6 / game.potentialAnswerDragMultiplier;
+                spawnedPotentialAnswer.body.AddForce(Vector3.up * 90 * Mathf.Pow(spawnedPotentialAnswer.body.drag, 0.8f), ForceMode.Force);
 
                 bool isAnswer = Random.Range(1, (int)(1 / game.oddsOfAnswer) + 1) == 1;
                 if (isAnswer)
@@ -197,11 +331,15 @@ public class GameManager : MonoBehaviour
                     if(gameModeChosen != "Division")
                     {
                         int number = Random.Range(1, 101);
+                        if (number == game.answer)
+                            spawnedPotentialAnswer.isAnswer = true;
                         spawnedPotentialAnswer.numberText.text = number.ToString();
                     }
                     else
                     {
                         int number = Random.Range(1, 31);
+                        if(number == game.answer)
+                            spawnedPotentialAnswer.isAnswer = true;
                         spawnedPotentialAnswer.numberText.text = number.ToString();
                     }
                 }
@@ -213,12 +351,61 @@ public class GameManager : MonoBehaviour
                 game.correctAnswerHit = false;
                 game.score++;
             }
-            game.scoreText.text = $"Score: {game.score}";
+            if(game.language == Game.Language.english)
+                game.scoreText.text = $"Score: {game.score}";
+            else
+                game.scoreText.text = $"Scór: {game.score}";
             yield return null;
         }
         StartCoroutine(FadeMusic(game.lobbyMusic, game.gameMusic[randomMusic], 0.3f, 1));
-        game.gameModeSelectionUI.SetActive(true);
-        game.gameUI.SetActive(false);
+        switch (weaponChosen)
+        {
+            case WeaponChosen.bow:
+                if (game.leftHanded)
+                {
+                    bow.leftGrabbing = false;
+                    gripManager.handAnimators = rightAnimators;
+                    gripManager.GripWithRight(true);
+                }
+                else
+                {
+                    bow.rightGrabbing = false;
+                    gripManager.handAnimators = leftAnimators;
+                    gripManager.GripWithLeft(true);
+                }
+                Destroy(bow.spawnedBow);
+                break;
+
+            case WeaponChosen.gun:
+                if (game.leftHanded)
+                {
+                    gun.leftGrabbing = false;
+                    gripManager.handAnimators = leftAnimators;
+                    gripManager.GripWithLeft(true);
+                }
+                else
+                {
+                    gun.rightGrabbing = false;
+                    gripManager.handAnimators = rightAnimators;
+                    gripManager.GripWithRight(true);
+                }
+                Destroy(gun.spawnedGun);
+                break;
+
+            case WeaponChosen.shuriken:
+                //Destroy(shuriken.spawnedShuriken);
+                break;
+        }
+        if (game.language == Game.Language.english)
+        {
+            game.gameUIEnglish.SetActive(false);
+            game.weaponMenuEnglish.SetActive(true);
+        }
+        else
+        {
+            game.gameUIIrish.SetActive(false);
+            game.weaponMenuIrish.SetActive(true);
+        }
         yield return null;
     }
     IEnumerator FadeMusic(AudioSource fadeIn, AudioSource fadeOut, float volumeFadeOut, float volumeFadeIn)
@@ -306,8 +493,42 @@ public class GameManager : MonoBehaviour
                 break;
         }
     }
+    void CanShoot()
+    {
+        gun.canShoot = true;
+    }
     private void Update()
     {
+        if(gun.leftGrabbing && gun.canShoot)
+        {
+            bool triggered = gun.leftShootInput.action.WasPressedThisFrame();
+            if (triggered)
+            {
+                Rigidbody spawnedBullet = Instantiate(gun.bulletToShoot).GetComponent<Rigidbody>();
+                spawnedBullet.transform.position = gun.spawnedGun.transform.TransformPoint(gun.bulletShootPoint);
+                spawnedBullet.transform.rotation = gun.spawnedGun.transform.rotation;
+                spawnedBullet.AddForce(gun.spawnedGun.transform.right * gun.bulletStrengthMultiplier, ForceMode.Force);
+                gun.canShoot = false;
+                Destroy(spawnedBullet.gameObject, 5);
+                Invoke(nameof(CanShoot), 0.25f);
+                AudioSource.PlayClipAtPoint(gun.fireSound, spawnedBullet.transform.position, 0.05f);
+            }
+        }
+        else if (gun.canShoot && gun.rightGrabbing)
+        {
+            bool triggered = gun.rightShootInput.action.WasPressedThisFrame();
+            if (triggered)
+            {
+                Rigidbody spawnedBullet = Instantiate(gun.bulletToShoot).GetComponent<Rigidbody>();
+                spawnedBullet.transform.position = gun.spawnedGun.transform.TransformPoint(gun.bulletShootPoint);
+                spawnedBullet.transform.rotation = gun.spawnedGun.transform.rotation;
+                spawnedBullet.AddForce(gun.spawnedGun.transform.right * gun.bulletStrengthMultiplier, ForceMode.Force);
+                gun.canShoot = false;
+                Destroy(spawnedBullet.gameObject, 5);
+                Invoke(nameof(CanShoot), 0.25f);
+                AudioSource.PlayClipAtPoint(gun.fireSound, spawnedBullet.transform.position, 0.05f);
+            }
+        }
         if(bow.canGrabString)
         {
             if (Physics.CheckSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius) || Physics.CheckSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius))
@@ -350,7 +571,7 @@ public class GameManager : MonoBehaviour
         {
             bow.hasFiredArrow = false;
             bow.spawnedBow.arrowModel.SetActive(true);
-            controller.leftIKTarget.rotation = Quaternion.LookRotation(controller.rightController.position - controller.leftController.position, controller.leftController.up) * Quaternion.Euler(0, -90, 90) * bow.initialOffset;
+            controller.leftIKTarget.rotation = Quaternion.Slerp(controller.leftIKTarget.rotation, Quaternion.LookRotation(controller.rightController.position - controller.leftController.position, controller.leftController.up) * Quaternion.Euler(0, -90, 90), 0.7f);
             if (!bow.handsReachingTarget)
             {
                 Invoke(nameof(HandsReachedTarget), 0.1f);
@@ -366,14 +587,14 @@ public class GameManager : MonoBehaviour
                 controller.rightIKTarget.position = bow.spawnedBow.stringArmaturePiece.transform.position - (bow.spawnedBow.stringArmaturePiece.transform.rotation * bow.stringRightGrabPositionOffset);
                 controller.rightIKTarget.rotation = bow.spawnedBow.stringArmaturePiece.transform.rotation * Quaternion.Euler(bow.stringRightGrabRotationOffset);
             }
-            Vector3 handInBowSpace = bow.spawnedBow.stringGrabPoint.transform.InverseTransformPoint(controller.rightController.position);
-            handInBowSpace = new Vector3(bow.spawnedBow.stringGrabPoint.transform.position.x, bow.spawnedBow.stringGrabPoint.transform.position.y, handInBowSpace.z);
+            Vector3 handInBowSpace = bow.spawnedBow.stringGrabPoint.transform.TransformPoint(bow.spawnedBow.stringGrabPoint.transform.rotation * (bow.spawnedBow.stringGrabPoint.transform.rotation * new Vector3(0, bow.spawnedBow.stringGrabPoint.transform.localPosition.y, Mathf.Clamp(bow.spawnedBow.stringGrabPoint.transform.InverseTransformPoint(controller.rightController.position).z, -bow.stringDistanceTarget, float.PositiveInfinity))));
             if (!bow.offsetSet)
             {
                 bow.stringGrabOffset = handInBowSpace - bow.spawnedBow.stringGrabPoint.transform.position;
                 bow.offsetSet = true;
             }
-            float pullBackValue = Mathf.Lerp(bow.spawnedBow.GetComponent<Animator>().GetFloat("PullBack"), Mathf.Clamp(Mathf.Clamp((bow.spawnedBow.stringGrabPoint.transform.position - (handInBowSpace - bow.stringGrabOffset)).z, 0, float.PositiveInfinity) / bow.stringDistanceTarget, 0, 1), 0.1f);
+            Vector3 targetInBowSpace = bow.spawnedBow.stringGrabPoint.transform.TransformPoint(bow.spawnedBow.stringGrabPoint.transform.rotation * bow.spawnedBow.stringGrabPoint.transform.rotation * new Vector3(0, bow.spawnedBow.stringGrabPoint.transform.localPosition.y, -bow.stringDistanceTarget));
+            float pullBackValue = Mathf.Clamp(Vector3.Distance(handInBowSpace.normalized, targetInBowSpace.normalized) / -bow.stringDistanceTarget + 1, 0, 1);
             bow.spawnedBow.GetComponent<Animator>().SetFloat("PullBack", pullBackValue);
             bow.shotStrength = pullBackValue;
         }
@@ -381,7 +602,7 @@ public class GameManager : MonoBehaviour
         {
             bow.hasFiredArrow = false;
             bow.spawnedBow.arrowModel.SetActive(true);
-            controller.rightIKTarget.rotation = Quaternion.LookRotation(controller.leftController.position - controller.rightController.position, controller.rightController.up) * Quaternion.Euler(0, 90, -90) * bow.initialOffset;
+            controller.rightIKTarget.rotation = Quaternion.Slerp(controller.rightIKTarget.rotation, Quaternion.LookRotation(controller.leftController.position - controller.rightController.position, controller.rightController.up) * Quaternion.Euler(0, 90, -90), 0.7f);
             if (!bow.handsReachingTarget)
             {
                 Invoke(nameof(HandsReachedTarget), 0.1f);
@@ -397,14 +618,14 @@ public class GameManager : MonoBehaviour
                 controller.leftIKTarget.position = bow.spawnedBow.stringArmaturePiece.transform.position - (bow.spawnedBow.stringArmaturePiece.transform.rotation * bow.stringLeftGrabPositionOffset);
                 controller.leftIKTarget.rotation = bow.spawnedBow.stringArmaturePiece.transform.rotation * Quaternion.Euler(bow.stringLeftGrabRotationOffset);
             }
-            Vector3 handInBowSpace = bow.spawnedBow.stringGrabPoint.transform.InverseTransformPoint(controller.leftController.position);
-            handInBowSpace = new Vector3(bow.spawnedBow.stringGrabPoint.transform.position.x, bow.spawnedBow.stringGrabPoint.transform.position.y, handInBowSpace.z);
+            Vector3 handInBowSpace = bow.spawnedBow.stringGrabPoint.transform.TransformPoint(bow.spawnedBow.stringGrabPoint.transform.rotation * (bow.spawnedBow.stringGrabPoint.transform.rotation * new Vector3(0, bow.spawnedBow.stringGrabPoint.transform.localPosition.y, Mathf.Clamp(bow.spawnedBow.stringGrabPoint.transform.InverseTransformPoint(controller.leftController.position).z, -bow.stringDistanceTarget, float.PositiveInfinity))));
             if (!bow.offsetSet)
             {
                 bow.stringGrabOffset = handInBowSpace - bow.spawnedBow.stringGrabPoint.transform.position;
                 bow.offsetSet = true;
             }
-            float pullBackValue = Mathf.Lerp(bow.spawnedBow.GetComponent<Animator>().GetFloat("PullBack"), Mathf.Clamp(Mathf.Clamp((bow.spawnedBow.stringGrabPoint.transform.position - (handInBowSpace - bow.stringGrabOffset)).z, 0, float.PositiveInfinity) / bow.stringDistanceTarget, 0, 1), 0.1f);
+            Vector3 targetInBowSpace = bow.spawnedBow.stringGrabPoint.transform.TransformPoint(bow.spawnedBow.stringGrabPoint.transform.rotation * bow.spawnedBow.stringGrabPoint.transform.rotation * new Vector3(0, bow.spawnedBow.stringGrabPoint.transform.localPosition.y, -bow.stringDistanceTarget));
+            float pullBackValue = Mathf.Clamp(Vector3.Distance(handInBowSpace.normalized, targetInBowSpace.normalized) / -bow.stringDistanceTarget + 1, 0, 1);
             bow.spawnedBow.GetComponent<Animator>().SetFloat("PullBack", pullBackValue);
             bow.shotStrength = pullBackValue;
         }

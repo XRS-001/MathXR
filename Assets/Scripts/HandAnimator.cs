@@ -75,7 +75,6 @@ public class HandAnimator : MonoBehaviour
             thumbTouched = false;
             thumbAnimator.Play("ThumbReverse", 0);
         }
-
         if (isLeftHand && gameManager.bow.leftGrabbingString || !isLeftHand && gameManager.bow.rightGrabbingString)
         {
             handAnimator.SetFloat("Trigger", 1);
@@ -83,31 +82,12 @@ public class HandAnimator : MonoBehaviour
         }
         else
         {
-            if (!isLeftHand && !gameManager.bow.leftGrabbing || isLeftHand && !gameManager.bow.rightGrabbing)
-            {
-                handAnimator.SetFloat("Trigger", triggeredValue);
+            handAnimator.SetFloat("Trigger", triggeredValue);
+            float gripValue = grip.action.ReadValue<float>();
+            handAnimator.SetFloat("Grip", gripValue);
+        }
+    }
 
-                //grip
-                float gripValue = grip.action.ReadValue<float>();
-                handAnimator.SetFloat("Grip", gripValue);
-            }
-            else
-            {
-                handAnimator.SetFloat("Grip", 1);
-                Invoke(nameof(FreeIndexFinger), 0.5f);
-            }
-        }
-    }
-    void FreeIndexFinger()
-    {
-        handAnimator.enabled = false;
-        if (!isLeftHand && gameManager.bow.leftGrabbing || isLeftHand && gameManager.bow.rightGrabbing)
-        {
-            indexFingerBones.index1.localRotation = Quaternion.Slerp(originalIndex1Rotation, grabbedIndexFingerBones.index1.localRotation, triggeredValue);
-            indexFingerBones.index2.localRotation = Quaternion.Slerp(originalIndex2Rotation, grabbedIndexFingerBones.index2.localRotation, triggeredValue);
-            indexFingerBones.index3.localRotation = Quaternion.Slerp(originalIndex3Rotation, grabbedIndexFingerBones.index3.localRotation, triggeredValue);
-        }
-    }
     //smoothly transition the blend value of the trigger
     public IEnumerator TriggerTouch()
     {

@@ -13,16 +13,23 @@ public class PotentialAnswer : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if(isAnswer && !hasHit)
+        if (!hasHit && collision.gameObject.layer == LayerMask.NameToLayer("Projectile"))
         {
-            GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
-            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 2);
-            hasHit = true;
-        }
-        else if (!hasHit)
-        {
-            GameObject.Find("GameManager").GetComponent<GameManager>().game.score--;
-            AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 2);
+            if (isAnswer)
+            {
+                GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
+                AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 2);
+                hasHit = true;
+            }
+            else
+            {
+                if (GameObject.Find("GameManager").GetComponent<GameManager>().game.score > 0)
+                    GameObject.Find("GameManager").GetComponent<GameManager>().game.score--;
+                AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 2);
+            }
+            body.AddForce(collision.relativeVelocity / 200, ForceMode.Impulse);
+            body.drag = 2;
+            body.angularDrag = 2;
         }
     }
 }
