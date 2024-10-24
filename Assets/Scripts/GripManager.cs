@@ -6,10 +6,8 @@ using UnityEngine;
 public class GripManager : MonoBehaviour
 {
     public Transform[] handBonesLeft;
-    private List<Quaternion> handBonesLeftRotationsStart = new List<Quaternion>();
     public Transform[] handBonesLeftOriginal;
     public Transform[] handBonesRight;
-    private List<Quaternion> handBonesRightRotationsStart = new List<Quaternion>();
     public Transform[] handBonesRightOriginal;
 
 
@@ -21,35 +19,27 @@ public class GripManager : MonoBehaviour
 
     public void GripWithLeft(bool grippingOut)
     {
-        for (int i = 0; i < handBonesLeft.Length; i++)
-        {
-            handBonesLeftRotationsStart.Add(handBonesLeft[i].localRotation);
-        }
         if (!grippingOut)
         {
-            StartCoroutine(GripRoutine(handBonesLeft, handBonesLeftRotationsStart, handBonesTarget, grippingOut));
+            StartCoroutine(GripRoutine(handBonesLeft, handBonesLeftOriginal, handBonesTarget, grippingOut));
         }
         else
         {
-            StartCoroutine(GripRoutine(handBonesLeft, handBonesLeftRotationsStart, handBonesLeftOriginal, grippingOut));
+            StartCoroutine(GripRoutine(handBonesLeft, handBonesTarget, handBonesLeftOriginal, grippingOut));
         }
     }
     public void GripWithRight(bool grippingOut)
     {
-        for (int i = 0; i < handBonesRight.Length; i++)
-        {
-            handBonesRightRotationsStart.Add(handBonesRight[i].localRotation);
-        }
         if(!grippingOut)
         {
-            StartCoroutine(GripRoutine(handBonesRight, handBonesRightRotationsStart, handBonesTarget, grippingOut));
+            StartCoroutine(GripRoutine(handBonesRight, handBonesRightOriginal, handBonesTarget, grippingOut));
         }
         else
         {
-            StartCoroutine(GripRoutine(handBonesRight, handBonesRightRotationsStart, handBonesRightOriginal, grippingOut));
+            StartCoroutine(GripRoutine(handBonesRight, handBonesTarget, handBonesRightOriginal, grippingOut));
         }
     }
-    IEnumerator GripRoutine(Transform[] bones, List<Quaternion> startRotations, Transform[] targetRotation, bool grippingOut)
+    IEnumerator GripRoutine(Transform[] bones, Transform[] startRotations, Transform[] targetRotation, bool grippingOut)
     {
         handAnimators[0].enabled = grippingOut;
         handAnimators[1].enabled = grippingOut;
@@ -58,9 +48,9 @@ public class GripManager : MonoBehaviour
         {
             for(int i = 0; i < bones.Length; i++)
             {
-                bones[i].localRotation = Quaternion.Slerp(startRotations[i], targetRotation[i].localRotation, timer / gripTime);
+                bones[i].localRotation = Quaternion.Slerp(startRotations[i].localRotation, targetRotation[i].localRotation, timer / gripTime);
             }
-            timer += Time.deltaTime;
+            timer += Time.fixedDeltaTime;
             yield return null;
         }
         yield return null;

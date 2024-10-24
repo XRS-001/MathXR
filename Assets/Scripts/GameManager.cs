@@ -129,6 +129,34 @@ public class GameManager : MonoBehaviour
         public Transform[] rightGrip;
     }
     public Gun gun;
+    [System.Serializable]
+    public class Shuriken
+    {
+        [HideInInspector]
+        public bool leftGrabbing, rightGrabbing;
+        public GameObject shurikenItem;
+        public AudioClip shurikenThrowSound;
+        public bool canGrab = false;
+        public float throwStrengthMultiplier;
+        public Vector3 leftPositionOffset, leftRotationOffset, rightPositionOffset, rightRotationOffset;
+        [HideInInspector]
+        public GameObject spawnedShuriken;
+        public InputActionProperty leftGrabInput, rightGrabInput;
+        public Transform grabPointLeft;
+        public Transform grabPointRight;
+        public float grabRadius;
+        public Transform[] leftGrip;
+        public Transform[] rightGrip;
+        [HideInInspector]
+        public Vector3 leftLastPosition;
+        [HideInInspector]
+        public Vector3 leftVelocity;
+        [HideInInspector]
+        public Vector3 rightLastPosition;
+        [HideInInspector]
+        public Vector3 rightVelocity;
+    }
+    public Shuriken shuriken;
     public enum GameModeSelection { additionAndSubtraction, multiplication, division }
     private GameModeSelection gameMode;
     public enum ChangeableGameValues { spawnRate, questions, speed }
@@ -141,6 +169,8 @@ public class GameManager : MonoBehaviour
             game.englishUI.SetActive(true);
         else
             game.irishUI.SetActive(true);
+        shuriken.leftLastPosition = controller.leftController.position;
+        shuriken.rightLastPosition = controller.rightController.position;
     }
     public void StartGame()
     {
@@ -280,23 +310,7 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case WeaponChosen.shuriken:
-                if (!bow.spawnedBow)
-                {
-                    if (game.leftHanded)
-                    {
-                        bow.spawnedBow = Instantiate(bow.bowItem, controller.rightIKTarget).GetComponent<BowSettings>();
-                        bow.spawnedBow.transform.localPosition = bow.leftBowPositionOffset;
-                        bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.leftBowRotationOffset);
-                        bow.leftGrabbing = true;
-                    }
-                    else
-                    {
-                        bow.spawnedBow = Instantiate(bow.bowItem, controller.leftIKTarget).GetComponent<BowSettings>();
-                        bow.spawnedBow.transform.localPosition = bow.rightBowPositionOffset;
-                        bow.spawnedBow.transform.localRotation = Quaternion.Euler(bow.rightBowRotationOffset);
-                        bow.rightGrabbing = true;
-                    }
-                }
+                shuriken.canGrab = true;
                 break;
         }
     }
@@ -344,6 +358,12 @@ public class GameManager : MonoBehaviour
                     }
                 }
                 timer = 0;
+                if (game.correctAnswerHit == true)
+                {
+                    GenerateAnswer(gameModeChosen);
+                    game.correctAnswerHit = false;
+                    game.score++;
+                }
             }
             if(game.correctAnswerHit == true)
             {
@@ -373,7 +393,7 @@ public class GameManager : MonoBehaviour
                     gripManager.handAnimators = leftAnimators;
                     gripManager.GripWithLeft(true);
                 }
-                Destroy(bow.spawnedBow);
+                Destroy(GameObject.Find("Bow(Clone)"));
                 break;
 
             case WeaponChosen.gun:
@@ -393,7 +413,7 @@ public class GameManager : MonoBehaviour
                 break;
 
             case WeaponChosen.shuriken:
-                //Destroy(shuriken.spawnedShuriken);
+                shuriken.canGrab = false;
                 break;
         }
         if (game.language == Game.Language.english)
@@ -499,7 +519,56 @@ public class GameManager : MonoBehaviour
     }
     private void Update()
     {
-        if(gun.leftGrabbing && gun.canShoot)
+        shuriken.leftVelocity = controller.leftController.position - shuriken.leftLastPosition;
+        shuriken.rightVelocity = controller.rightController.position - shuriken.rightLastPosition;
+
+        shuriken.leftLastPosition = controller.leftController.position;
+        shuriken.rightLastPosition = controller.rightController.position;
+
+        if (shuriken.canGrab)
+        {
+            if (!shuriken.leftGrabbing && Physics.CheckSphere(shuriken.grabPointLeft.position, shuriken.grabRadius) && shuriken.leftGrabInput.action.WasPressedThisFrame())
+            {
+                shuriken.spawnedShuriken = Instantiate(shuriken.shurikenItem, controller.leftIKTarget);
+                shuriken.spawnedShuriken.transform.localPosition = shuriken.leftPositionOffset;
+                shuriken.spawnedShuriken.transform.localRotation = Quaternion.Euler(shuriken.leftRotationOffset);
+                shuriken.leftGrabbing = true;
+                gripManager.handBonesTarget = shuriken.leftGrip;
+                gripManager.handAnimators = leftAnimators;
+                gripManager.GripWithLeft(false);
+            }
+            if (!shuriken.rightGrabbing && Physics.CheckSphere(shuriken.grabPointRight.position, shuriken.grabRadius) && shuriken.rightGrabInput.action.WasPressedThisFrame())
+            {
+                shuriken.spawnedShuriken = Instantiate(shuriken.shurikenItem, controller.rightIKTarget);
+                shuriken.spawnedShuriken.transform.localPosition = shuriken.rightPositionOffset;
+                shuriken.spawnedShuriken.transform.localRotation = Quaternion.Euler(shuriken.rightRotationOffset);
+                shuriken.rightGrabbing = true;
+                gripManager.handBonesTarget = shuriken.rightGrip;
+                gripManager.handAnimators = rightAnimators;
+                gripManager.GripWithRight(false);
+            }
+        }
+        if(shuriken.leftGrabInput.action.ReadValue<float>() == 0 && shuriken.leftGrabbing)
+        {
+            Rigidbody rigidBody = shuriken.spawnedShuriken.AddComponent<Rigidbody>();
+            shuriken.spawnedShuriken.transform.parent = null;
+            shuriken.spawnedShuriken.AddComponent<BoxCollider>();
+            shuriken.leftGrabbing = false;
+            rigidBody.AddForce(shuriken.leftVelocity * 15000, ForceMode.Force);
+            rigidBody.AddTorque(shuriken.spawnedShuriken.transform.forward * shuriken.leftVelocity.magnitude * 150, ForceMode.Force);
+            gripManager.GripWithLeft(true);
+        }
+        if (shuriken.rightGrabInput.action.ReadValue<float>() == 0 && shuriken.rightGrabbing)
+        {
+            Rigidbody rigidBody = shuriken.spawnedShuriken.AddComponent<Rigidbody>();
+            shuriken.spawnedShuriken.transform.parent = null;
+            shuriken.spawnedShuriken.AddComponent<BoxCollider>();
+            shuriken.rightGrabbing = false;
+            rigidBody.AddForce(shuriken.rightVelocity * 15000, ForceMode.Force);
+            rigidBody.AddTorque(shuriken.spawnedShuriken.transform.forward * shuriken.rightVelocity.magnitude * 150, ForceMode.Force);
+            gripManager.GripWithRight(true);
+        }
+        if (gun.leftGrabbing && gun.canShoot)
         {
             bool triggered = gun.leftShootInput.action.WasPressedThisFrame();
             if (triggered)
@@ -531,7 +600,7 @@ public class GameManager : MonoBehaviour
         }
         if(bow.canGrabString)
         {
-            if (Physics.CheckSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius) || Physics.CheckSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius))
+            if (Physics.CheckSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius, ~(1 << LayerMask.NameToLayer("ShurikenCheck"))) || Physics.CheckSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius, ~(1 << LayerMask.NameToLayer("ShurikenCheck"))))
             {
                 Collider[] colliderRight = Physics.OverlapSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius);
                 if (colliderRight.Length == 0)
@@ -732,5 +801,7 @@ public class GameManager : MonoBehaviour
         Gizmos.color = new Color(0, 1, 0, 0.25f);
         Gizmos.DrawSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius);
         Gizmos.DrawSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius);
+        Gizmos.DrawSphere(shuriken.grabPointLeft.position, shuriken.grabRadius);
+        Gizmos.DrawSphere(shuriken.grabPointRight.position, shuriken.grabRadius);
     }
 }

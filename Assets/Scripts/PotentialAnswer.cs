@@ -15,21 +15,46 @@ public class PotentialAnswer : MonoBehaviour
     {
         if (!hasHit && collision.gameObject.layer == LayerMask.NameToLayer("Projectile"))
         {
-            if (isAnswer)
+            if(collision.gameObject.GetComponent<Shuriken>())
             {
-                GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
-                AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 2);
-                hasHit = true;
+                if (collision.gameObject.GetComponent<Shuriken>().canCollide)
+                {
+                    if (isAnswer)
+                    {
+                        GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
+                        AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 2);
+                        hasHit = true;
+                    }
+                    else
+                    {
+                        if (GameObject.Find("GameManager").GetComponent<GameManager>().game.score > 0)
+                            GameObject.Find("GameManager").GetComponent<GameManager>().game.score--;
+                        AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 2);
+                    }
+                }
             }
             else
             {
-                if (GameObject.Find("GameManager").GetComponent<GameManager>().game.score > 0)
-                    GameObject.Find("GameManager").GetComponent<GameManager>().game.score--;
-                AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 2);
+                if (isAnswer)
+                {
+                    GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerHit = true;
+                    AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.correctAnswerSound, transform.position, 2);
+                    hasHit = true;
+                }
+                else
+                {
+                    if (GameObject.Find("GameManager").GetComponent<GameManager>().game.score > 0)
+                        GameObject.Find("GameManager").GetComponent<GameManager>().game.score--;
+                    AudioSource.PlayClipAtPoint(GameObject.Find("GameManager").GetComponent<GameManager>().game.incorrectAnswerSound, transform.position, 2);
+                }
             }
             body.AddForce(collision.relativeVelocity / 200, ForceMode.Impulse);
             body.drag = 2;
             body.angularDrag = 2;
+        }
+        else if(!hasHit && collision.gameObject.layer == LayerMask.NameToLayer("Floor"))
+        {
+            hasHit = true;
         }
     }
 }
