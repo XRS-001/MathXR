@@ -57,6 +57,8 @@ public class GameManager : MonoBehaviour
         public Transform[] spawnPoints;
         public PotentialAnswer[] potentialAnswer;
         public AudioClip potentialAnswerSound;
+        public TextMeshProUGUI questionTextEnglish, scoreTextEnglish, questionTextIrish, scoreTextIrish;
+        [HideInInspector]
         public TextMeshProUGUI questionText, scoreText;
         public int questionsToAnswer;
         public float answersPerSecond;
@@ -166,9 +168,17 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         if(game.language == Game.Language.english)
+        {
             game.englishUI.SetActive(true);
+            game.scoreText = game.scoreTextEnglish;
+            game.questionText = game.questionTextEnglish;
+        }
         else
+        {
             game.irishUI.SetActive(true);
+            game.scoreText = game.scoreTextIrish;
+            game.questionText = game.questionTextIrish;
+        }
         shuriken.leftLastPosition = controller.leftController.position;
         shuriken.rightLastPosition = controller.rightController.position;
     }
@@ -527,7 +537,7 @@ public class GameManager : MonoBehaviour
 
         if (shuriken.canGrab)
         {
-            if (!shuriken.leftGrabbing && Physics.CheckSphere(shuriken.grabPointLeft.position, shuriken.grabRadius) && shuriken.leftGrabInput.action.WasPressedThisFrame())
+            if (!shuriken.leftGrabbing && Physics.CheckSphere(shuriken.grabPointLeft.position, shuriken.grabRadius) && shuriken.leftGrabInput.action.WasPressedThisFrame() && !shuriken.rightGrabbing)
             {
                 shuriken.spawnedShuriken = Instantiate(shuriken.shurikenItem, controller.leftIKTarget);
                 shuriken.spawnedShuriken.transform.localPosition = shuriken.leftPositionOffset;
@@ -537,7 +547,7 @@ public class GameManager : MonoBehaviour
                 gripManager.handAnimators = leftAnimators;
                 gripManager.GripWithLeft(false);
             }
-            if (!shuriken.rightGrabbing && Physics.CheckSphere(shuriken.grabPointRight.position, shuriken.grabRadius) && shuriken.rightGrabInput.action.WasPressedThisFrame())
+            if (!shuriken.rightGrabbing && Physics.CheckSphere(shuriken.grabPointRight.position, shuriken.grabRadius) && shuriken.rightGrabInput.action.WasPressedThisFrame() && !shuriken.leftGrabbing)
             {
                 shuriken.spawnedShuriken = Instantiate(shuriken.shurikenItem, controller.rightIKTarget);
                 shuriken.spawnedShuriken.transform.localPosition = shuriken.rightPositionOffset;
@@ -552,7 +562,9 @@ public class GameManager : MonoBehaviour
         {
             Rigidbody rigidBody = shuriken.spawnedShuriken.AddComponent<Rigidbody>();
             shuriken.spawnedShuriken.transform.parent = null;
-            shuriken.spawnedShuriken.AddComponent<BoxCollider>();
+            BoxCollider collider = shuriken.spawnedShuriken.AddComponent<BoxCollider>();
+            Vector3 size = new Vector3(collider.size.x * 2, collider.size.y * 2, collider.size.z * 2);
+            collider.size = size;
             shuriken.leftGrabbing = false;
             rigidBody.AddForce(shuriken.leftVelocity * 15000, ForceMode.Force);
             rigidBody.AddTorque(shuriken.spawnedShuriken.transform.forward * shuriken.leftVelocity.magnitude * 150, ForceMode.Force);
@@ -562,7 +574,9 @@ public class GameManager : MonoBehaviour
         {
             Rigidbody rigidBody = shuriken.spawnedShuriken.AddComponent<Rigidbody>();
             shuriken.spawnedShuriken.transform.parent = null;
-            shuriken.spawnedShuriken.AddComponent<BoxCollider>();
+            BoxCollider collider = shuriken.spawnedShuriken.AddComponent<BoxCollider>();
+            Vector3 size = new Vector3(collider.size.x * 2, collider.size.y * 2, collider.size.z * 2);
+            collider.size = size;
             shuriken.rightGrabbing = false;
             rigidBody.AddForce(shuriken.rightVelocity * 15000, ForceMode.Force);
             rigidBody.AddTorque(shuriken.spawnedShuriken.transform.forward * shuriken.rightVelocity.magnitude * 150, ForceMode.Force);
@@ -603,37 +617,41 @@ public class GameManager : MonoBehaviour
             if (Physics.CheckSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius, ~(1 << LayerMask.NameToLayer("ShurikenCheck"))) || Physics.CheckSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius, ~(1 << LayerMask.NameToLayer("ShurikenCheck"))))
             {
                 Collider[] colliderRight = Physics.OverlapSphere(controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), bow.stringGrabRadius);
-                if (colliderRight.Length == 0)
+                Collider[] colliderLeft = Physics.OverlapSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius);
+                if (colliderLeft.Length > 0 && game.leftHanded)
                 {
-                    Collider[] colliderLeft = Physics.OverlapSphere(controller.leftController.transform.position - (controller.leftController.rotation * new Vector3(-bow.grabPoint.x, bow.grabPoint.y, bow.grabPoint.z)), bow.stringGrabRadius);
-                    if (colliderLeft.Length > 0)
+                    if (colliderLeft[0])
                     {
-                        if (colliderLeft[0])
+                        if (colliderLeft[0].name != "StringGrabPoint")
+                            colliderLeft = null;
+                        if (bow.leftGrabInput.action.ReadValue<float>() > 0.25f)
                         {
-                            if (colliderLeft[0].name != "StringGrabPoint")
-                                colliderLeft = null;
-                            else if (bow.leftGrabInput.action.ReadValue<float>() > 0.25f)
+                            if (!bow.leftGrabbingString)
+                                AudioSource.PlayClipAtPoint(bow.grabSound, controller.leftController.transform.position - (controller.leftController.rotation * bow.grabPoint), 0.15f);
+                            bow.leftGrabbingString = true;
+                            bow.initialOffset = Quaternion.Inverse(Quaternion.LookRotation(controller.leftController.position - controller.rightController.position, controller.rightController.up) * Quaternion.Euler(0, 90, -90)) * controller.rightIKTarget.rotation;
+                        }
+                    }
+                }
+                if (colliderRight.Length > 0 && !game.leftHanded)
+                {
+                    if (colliderLeft[0])
+                    {
+                        if (colliderRight[0])
+                        {
+                            if (colliderRight[0].name != "StringGrabPoint")
+                                colliderRight = null;
+                            if (bow.rightGrabInput.action.ReadValue<float>() > 0.25f)
                             {
-                                if (!bow.leftGrabbingString)
-                                    AudioSource.PlayClipAtPoint(bow.grabSound, controller.leftController.transform.position - (controller.leftController.rotation * bow.grabPoint), 0.15f);
-                                bow.leftGrabbingString = true;
-                                bow.initialOffset = Quaternion.Inverse(Quaternion.LookRotation(controller.leftController.position - controller.rightController.position, controller.rightController.up) * Quaternion.Euler(0, 90, -90)) * controller.rightIKTarget.rotation;
+                                if (!bow.rightGrabbingString)
+                                    AudioSource.PlayClipAtPoint(bow.grabSound, controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), 0.15f);
+                                bow.rightGrabbingString = true;
+                                bow.initialOffset = Quaternion.Inverse(Quaternion.LookRotation(controller.rightController.position - controller.leftController.position, controller.leftController.up) * Quaternion.Euler(0, -90, 90)) * controller.leftIKTarget.rotation;
                             }
                         }
                     }
                 }
-                else if (colliderRight[0])
-                {
-                    if (colliderRight[0].name != "StringGrabPoint")
-                        colliderRight = null;
-                    if (bow.rightGrabInput.action.ReadValue<float>() > 0.25f)
-                    {
-                        if (!bow.rightGrabbingString)
-                            AudioSource.PlayClipAtPoint(bow.grabSound, controller.rightController.transform.position - (controller.rightController.rotation * bow.grabPoint), 0.15f);
-                        bow.rightGrabbingString = true;
-                        bow.initialOffset = Quaternion.Inverse(Quaternion.LookRotation(controller.rightController.position - controller.leftController.position, controller.leftController.up) * Quaternion.Euler(0, -90, 90)) * controller.leftIKTarget.rotation;
-                    }
-                }
+
             }
         }
         if (bow.rightGrabbingString)
